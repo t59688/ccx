@@ -103,6 +103,40 @@ export function buildClaudeProfile(input: ClaudeCreateInput): ClaudeProfile {
   return ClaudeProfileSchema.parse({ settings });
 }
 
+export function extractClaudeProfileInput(profile?: ClaudeProfile): ClaudeCreateInput {
+  const env = profile?.settings?.env && typeof profile.settings.env === "object"
+    ? profile.settings.env as Record<string, unknown>
+    : {};
+  return {
+    baseUrl: str(env.ANTHROPIC_BASE_URL),
+    authToken: str(env.ANTHROPIC_AUTH_TOKEN),
+    model: str(env.ANTHROPIC_MODEL),
+    reasoningModel: str(env.ANTHROPIC_REASONING_MODEL),
+    haikuModel: str(env.ANTHROPIC_DEFAULT_HAIKU_MODEL),
+    sonnetModel: str(env.ANTHROPIC_DEFAULT_SONNET_MODEL),
+    opusModel: str(env.ANTHROPIC_DEFAULT_OPUS_MODEL)
+  };
+}
+
+function str(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+export function extractCodexProfileInput(profile?: CodexProfile): CodexCreateInput {
+  const config = profile?.config ?? {};
+  const providerKey = typeof config.model_provider === "string" ? config.model_provider : "custom";
+  const providers = config.model_providers && typeof config.model_providers === "object"
+    ? config.model_providers as Record<string, Record<string, unknown>>
+    : {};
+  const providerConfig = providers[providerKey] ?? providers.custom ?? {};
+  return {
+    baseUrl: str(providerConfig.base_url),
+    key: str(profile?.auth?.OPENAI_API_KEY),
+    model: str(config.model),
+    modelReasoningEffort: str(config.model_reasoning_effort)
+  };
+}
+
 export function buildCodexProfile(input: CodexCreateInput): CodexProfile {
   const provider = "custom";
   const providerConfig: Record<string, unknown> = { name: "custom" };

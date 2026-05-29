@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildClaudeProfile, buildCodexProfile } from "../src/core/agent-profiles.js";
+import {
+  buildClaudeProfile,
+  buildCodexProfile,
+  extractCodexProfileInput
+} from "../src/core/agent-profiles.js";
 
 const get = (value: unknown) => value as Record<string, unknown>;
 
@@ -30,6 +34,24 @@ describe("agent profile builders", () => {
       modelReasoningEffort: "xhigh"
     });
     expect(profile.config?.model_reasoning_effort).toBe("xhigh");
+  });
+
+  it("extracts Codex fields from active model_provider", () => {
+    const profile = buildCodexProfile({ baseUrl: "https://gw.example", key: "sk", model: "m" });
+    profile.config!.model_provider = "custom";
+    expect(extractCodexProfileInput(profile)).toMatchObject({
+      baseUrl: "https://gw.example",
+      key: "sk",
+      model: "m"
+    });
+  });
+
+  it("extracts Codex base_url from non-custom provider key", () => {
+    const profile = buildCodexProfile({ baseUrl: "https://other.host", key: "sk", model: "m" });
+    const providers = get(profile.config?.model_providers);
+    providers.alt = { ...providers.custom, base_url: "https://other.host" };
+    profile.config!.model_provider = "alt";
+    expect(extractCodexProfileInput(profile).baseUrl).toBe("https://other.host");
   });
 
   it("builds the simplified Claude settings", () => {

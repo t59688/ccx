@@ -1,11 +1,17 @@
 import { confirm, input, password, select } from "@inquirer/prompts";
+import chalk from "chalk";
+import { t } from "./i18n.js";
 
 export async function promptText(message: string, defaultValue?: string): Promise<string> {
+  if (defaultValue !== undefined && defaultValue !== "") {
+    console.log(chalk.gray(`  ${t("promptCurrent")}: ${defaultValue}`));
+  }
   return input({ message, default: defaultValue });
 }
 
-export async function promptSecret(message: string): Promise<string> {
-  return password({ message, mask: "*" });
+export async function promptSecret(message: string, keepExisting = false): Promise<string> {
+  const hint = keepExisting ? chalk.gray(` (${t("promptKeepSecret")})`) : "";
+  return password({ message: `${message}${hint}`, mask: "*" });
 }
 
 export async function promptConfirm(message: string, defaultValue = false): Promise<boolean> {

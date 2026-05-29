@@ -90,6 +90,8 @@ const messages = {
     codexKey: "Codex key / OPENAI_API_KEY",
     codexModel: "Codex model",
     codexReasoningEffort: "Codex reasoning effort / model_reasoning_effort",
+    promptCurrent: "Current",
+    promptKeepSecret: "leave blank to keep",
 
     browseUse: "Use",
     browseShow: "Show",
@@ -259,6 +261,8 @@ const messages = {
     codexKey: "Codex Key / OPENAI_API_KEY",
     codexModel: "Codex 模型名",
     codexReasoningEffort: "Codex 推理强度 / model_reasoning_effort",
+    promptCurrent: "当前",
+    promptKeepSecret: "留空保留",
 
     browseUse: "使用",
     browseShow: "查看",

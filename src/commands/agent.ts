@@ -5,6 +5,8 @@ import {
   applyAgentProfile,
   buildClaudeProfile,
   buildCodexProfile,
+  extractClaudeProfileInput,
+  extractCodexProfileInput,
   listAgentProfiles,
   loadAgentProfile,
   loadAgentProfileMeta,
@@ -55,8 +57,10 @@ function hasAnyValue(input: Record<string, unknown>): boolean {
   return Object.values(input).some((value) => value !== undefined && value !== false);
 }
 
-function str(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
+function keepIfBlank(prompted: string, existing?: string): string | undefined {
+  const trimmed = prompted.trim();
+  if (trimmed) return trimmed;
+  return existing;
 }
 
 async function promptPresetName(agent: Agent, name?: string): Promise<string> {
@@ -85,51 +89,36 @@ async function resolveShowPresetName(agent: Agent, name?: string): Promise<strin
   );
 }
 
-function currentClaudeDefaults(profile?: ClaudeProfile): Record<string, unknown> {
-  const env = profile?.settings?.env && typeof profile.settings.env === "object" ? profile.settings.env as Record<string, unknown> : {};
-  return {
-    baseUrl: env.ANTHROPIC_BASE_URL,
-    authToken: env.ANTHROPIC_AUTH_TOKEN,
-    model: env.ANTHROPIC_MODEL,
-    reasoningModel: env.ANTHROPIC_REASONING_MODEL,
-    haikuModel: env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
-    sonnetModel: env.ANTHROPIC_DEFAULT_SONNET_MODEL,
-    opusModel: env.ANTHROPIC_DEFAULT_OPUS_MODEL
-  };
-}
-
-function currentCodexDefaults(profile?: CodexProfile): Record<string, unknown> {
-  const config = profile?.config ?? {};
-  const providers = config.model_providers && typeof config.model_providers === "object" ? config.model_providers as Record<string, Record<string, unknown>> : {};
-  const providerConfig = providers.custom ?? {};
-  return {
-    baseUrl: providerConfig.base_url,
-    key: profile?.auth?.OPENAI_API_KEY,
-    model: config.model,
-    modelReasoningEffort: config.model_reasoning_effort
-  };
-}
-
-async function collectClaude(options: ClaudeCreateOptions, defaults?: Record<string, unknown>, forceInteractive = false): Promise<ClaudeProfile> {
+async function collectClaude(options: ClaudeCreateOptions, defaults?: ReturnType<typeof extractClaudeProfileInput>, forceInteractive = false): Promise<ClaudeProfile> {
   const interactive = forceInteractive || !hasAnyValue(options as Record<string, unknown>);
-  const baseUrl = options.baseUrl ?? options.apiUrl ?? (interactive ? await promptText(t("claudeBaseUrl"), str(defaults?.baseUrl)) : undefined);
-  const authToken = options.authToken ?? options.key ?? (interactive ? await promptSecret(t("claudeKey")) || str(defaults?.authToken) : undefined);
-  const model = options.model ?? (interactive ? await promptText(t("claudeModel"), str(defaults?.model)) : undefined);
-  const reasoningModel = options.reasoningModel ?? (interactive ? await promptText(t("claudeReasoningModel"), str(defaults?.reasoningModel)) : undefined);
-  const haikuModel = options.haikuModel ?? (interactive ? await promptText(t("claudeHaikuModel"), str(defaults?.haikuModel)) : undefined);
-  const sonnetModel = options.sonnetModel ?? (interactive ? await promptText(t("claudeSonnetModel"), str(defaults?.sonnetModel)) : undefined);
-  const opusModel = options.opusModel ?? (interactive ? await promptText(t("claudeOpusModel"), str(defaults?.opusModel)) : undefined);
+  const baseUrl = options.baseUrl ?? options.apiUrl
+    ?? (interactive ? keepIfBlank(await promptText(t("claudeBaseUrl"), defaults?.baseUrl), defaults?.baseUrl) : undefined);
+  const authToken = options.authToken ?? options.key
+    ?? (interactive ? keepIfBlank(await promptSecret(t("claudeKey"), Boolean(defaults?.authToken)), defaults?.authToken) : undefined);
+  const model = options.model
+    ?? (interactive ? keepIfBlank(await promptText(t("claudeModel"), defaults?.model), defaults?.model) : undefined);
+  const reasoningModel = options.reasoningModel
+    ?? (interactive ? keepIfBlank(await promptText(t("claudeReasoningModel"), defaults?.reasoningModel), defaults?.reasoningModel) : undefined);
+  const haikuModel = options.haikuModel
+    ?? (interactive ? keepIfBlank(await promptText(t("claudeHaikuModel"), defaults?.haikuModel), defaults?.haikuModel) : undefined);
+  const sonnetModel = options.sonnetModel
+    ?? (interactive ? keepIfBlank(await promptText(t("claudeSonnetModel"), defaults?.sonnetModel), defaults?.sonnetModel) : undefined);
+  const opusModel = options.opusModel
+    ?? (interactive ? keepIfBlank(await promptText(t("claudeOpusModel"), defaults?.opusModel), defaults?.opusModel) : undefined);
 
   return buildClaudeProfile({ baseUrl, authToken, model, reasoningModel, haikuModel, sonnetModel, opusModel });
 }
 
-async function collectCodex(options: CodexCreateOptions, defaults?: Record<string, unknown>, forceInteractive = false): Promise<CodexProfile> {
+async function collectCodex(options: CodexCreateOptions, defaults?: ReturnType<typeof extractCodexProfileInput>, forceInteractive = false): Promise<CodexProfile> {
   const interactive = forceInteractive || !hasAnyValue(options as Record<string, unknown>);
-  const baseUrl = options.baseUrl ?? options.apiUrl ?? (interactive ? await promptText(t("codexBaseUrl"), str(defaults?.baseUrl)) : undefined);
-  const key = options.key ?? (interactive ? await promptSecret(t("codexKey")) || str(defaults?.key) : undefined);
-  const model = options.model ?? (interactive ? await promptText(t("codexModel"), str(defaults?.model)) : undefined);
+  const baseUrl = options.baseUrl ?? options.apiUrl
+    ?? (interactive ? keepIfBlank(await promptText(t("codexBaseUrl"), defaults?.baseUrl), defaults?.baseUrl) : undefined);
+  const key = options.key
+    ?? (interactive ? keepIfBlank(await promptSecret(t("codexKey"), Boolean(defaults?.key)), defaults?.key) : undefined);
+  const model = options.model
+    ?? (interactive ? keepIfBlank(await promptText(t("codexModel"), defaults?.model), defaults?.model) : undefined);
   const modelReasoningEffort = options.modelReasoningEffort ?? options.reasoningEffort
-    ?? (interactive ? await promptText(t("codexReasoningEffort"), str(defaults?.modelReasoningEffort)) : undefined);
+    ?? (interactive ? keepIfBlank(await promptText(t("codexReasoningEffort"), defaults?.modelReasoningEffort), defaults?.modelReasoningEffort) : undefined);
   return buildCodexProfile({ baseUrl, key, model, modelReasoningEffort });
 }
 
@@ -298,7 +287,7 @@ function editClaudeCommand(): Command {
     .description(t("agentEditClaudeDescription"))
     .action(async (name: string, options: CommonOptions) => {
       const existing = await loadAgentProfile("claude", name);
-      const profile = await collectClaude(options as ClaudeCreateOptions, currentClaudeDefaults(existing), true);
+      const profile = await collectClaude(options as ClaudeCreateOptions, extractClaudeProfileInput(existing), true);
       const oldMeta = await loadAgentProfileMeta("claude", name);
       await saveAgentProfile("claude", name, profile, { force: true, displayName: options.displayName ?? oldMeta?.displayName, description: options.description ?? oldMeta?.description });
       console.log(chalk.green(t("agentUpdated", { agent: formatAgent("claude"), name })));
@@ -310,7 +299,7 @@ function editCodexCommand(): Command {
     .description(t("agentEditCodexDescription"))
     .action(async (name: string, options: CommonOptions) => {
       const existing = await loadAgentProfile("codex", name);
-      const profile = await collectCodex(options as CodexCreateOptions, currentCodexDefaults(existing), true);
+      const profile = await collectCodex(options as CodexCreateOptions, extractCodexProfileInput(existing), true);
       const oldMeta = await loadAgentProfileMeta("codex", name);
       await saveAgentProfile("codex", name, profile, { force: true, displayName: options.displayName ?? oldMeta?.displayName, description: options.description ?? oldMeta?.description });
       console.log(chalk.green(t("agentUpdated", { agent: formatAgent("codex"), name })));
@@ -350,8 +339,8 @@ function browseAgentCommand(agent: Agent): Command {
         } else if (action === "edit") {
           const existing = await loadAgentProfile(agent as never, selected);
           const profile = agent === "claude"
-            ? await collectClaude({}, currentClaudeDefaults(existing as ClaudeProfile), true)
-            : await collectCodex({}, currentCodexDefaults(existing as CodexProfile), true);
+            ? await collectClaude({}, extractClaudeProfileInput(existing as ClaudeProfile), true)
+            : await collectCodex({}, extractCodexProfileInput(existing as CodexProfile), true);
           const meta = await loadAgentProfileMeta(agent, selected);
           await saveAgentProfile(agent as never, selected, profile as never, { force: true, displayName: meta?.displayName, description: meta?.description });
         } else if (action === "delete") {

@@ -1,6 +1,6 @@
 {
-  "name": "ccx",
-  "version": "0.1.0",
+  "name": "@t59688/ccx",
+  "version": "0.1.1",
   "description": "CLI for Claude Code and Codex: live configs, presets, and encrypted GitHub sync.",
   "type": "module",
   "bin": {

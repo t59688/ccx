@@ -6,6 +6,7 @@ import { listCommand } from "./commands/list.js";
 import { pushCommand } from "./commands/push.js";
 import { pullCommand } from "./commands/pull.js";
 import { settingCommand } from "./commands/setting.js";
+import { migrateCommand } from "./commands/migrate.js";
 import { agentCommands } from "./commands/agent.js";
 import { bootstrapLanguage } from "./core/state.js";
 import { CcxError, getErrorMessage } from "./utils/errors.js";
@@ -25,6 +26,7 @@ function buildProgram(): Command {
   program.addCommand(pushCommand());
   program.addCommand(pullCommand());
   program.addCommand(settingCommand());
+  program.addCommand(migrateCommand());
   return program;
 }
 
@@ -32,6 +34,7 @@ async function interactiveMenu(program: Command): Promise<void> {
   const action = await promptSelect(t("menuTitle"), [
     { name: t("menuClaude"), value: "claude" },
     { name: t("menuCodex"), value: "codex" },
+    { name: t("menuMigrate"), value: "migrate-ccs" },
     { name: t("menuScan"), value: "scan" },
     { name: t("menuList"), value: "list" },
     { name: t("menuPush"), value: "push" },

@@ -1,4 +1,4 @@
-import { confirm, input, password, select } from "@inquirer/prompts";
+import { confirm, input, password, select, checkbox } from "@inquirer/prompts";
 import chalk from "chalk";
 import { t } from "./i18n.js";
 
@@ -20,4 +20,8 @@ export async function promptConfirm(message: string, defaultValue = false): Prom
 
 export async function promptSelect<T extends string>(message: string, choices: { name: string; value: T }[]): Promise<T> {
   return select({ message, choices });
+}
+
+export async function promptCheckbox<T extends string>(message: string, choices: { name: string; value: T; checked?: boolean }[]): Promise<T[]> {
+  return checkbox({ message, choices });
 }

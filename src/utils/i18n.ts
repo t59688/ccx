@@ -17,6 +17,7 @@ const messages = {
     menuPush: "Push encrypted presets",
     menuPull: "Pull encrypted presets",
     menuSettings: "Settings",
+    menuMigrate: "Import from cc-switch",
     restartAgent: "Restart {agent} sessions to ensure changes are loaded.",
     otherAgentsUnchanged: "Other agents were not changed.",
     deprecatedCombined: "Combined profiles are deprecated. Use `ccx claude ...` or `ccx codex ...` instead.",
@@ -176,7 +177,10 @@ const messages = {
     noCodexToSave: "No Codex live config found to save.",
     noAnyConfig: "No Claude or Codex live config found.",
     saveCurrentClaudeNameMissing: "--save-current-claude needs a preset name when no enabled Claude preset exists.",
-    saveCurrentCodexNameMissing: "--save-current-codex needs a preset name when no enabled Codex preset exists."
+    saveCurrentCodexNameMissing: "--save-current-codex needs a preset name when no enabled Codex preset exists.",
+    migrateSelect: "Select presets to import",
+    migrateNone: "No presets selected",
+    migrateFound: "Found {count} presets in cc-switch. Please select:"
   },
   "zh-CN": {
     appDescription: "独立管理 Claude/Codex 生效配置与预设",
@@ -188,6 +192,7 @@ const messages = {
     menuPush: "加密上传预设",
     menuPull: "下载并解密预设",
     menuSettings: "设置",
+    menuMigrate: "从 cc-switch 导入预设",
     restartAgent: "请重启 {agent} 会话以确保配置生效。",
     otherAgentsUnchanged: "其他软件配置没有被改动。",
     deprecatedCombined: "组合 profile 已废弃。请使用 `ccx claude ...` 或 `ccx codex ...`。",
@@ -347,7 +352,10 @@ const messages = {
     noCodexToSave: "没有找到可保存的 Codex 生效配置。",
     noAnyConfig: "没有找到 Claude 或 Codex 生效配置。",
     saveCurrentClaudeNameMissing: "没有已启用的 Claude 预设时，--save-current-claude 必须指定预设名称。",
-    saveCurrentCodexNameMissing: "没有已启用的 Codex 预设时，--save-current-codex 必须指定预设名称。"
+    saveCurrentCodexNameMissing: "没有已启用的 Codex 预设时，--save-current-codex 必须指定预设名称。",
+    migrateSelect: "选择要导入的预设（按空格键选择，回车确认）",
+    migrateNone: "未选择任何预设",
+    migrateFound: "在 cc-switch 中找到了 {count} 个预设。请选择："
   }
 } as const;
 

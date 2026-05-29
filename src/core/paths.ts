@@ -6,7 +6,6 @@ import { Agent } from "../types/schema.js";
 export const HOME = os.homedir();
 
 export const CCX_DIR = path.join(HOME, ".ccx");
-export const PROFILES_DIR = path.join(CCX_DIR, "profiles"); // legacy combined profiles
 export const AGENT_PROFILES_DIR = path.join(CCX_DIR, "agents"); // preferred per-agent profiles
 export const BACKUPS_DIR = path.join(CCX_DIR, "backups");
 export const STATE_PATH = path.join(CCX_DIR, "state.yaml");

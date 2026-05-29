@@ -1,13 +1,6 @@
 import chalk from "chalk";
-import { FullSnapshot, ProfileMeta } from "../types/schema.js";
+import { FullSnapshot } from "../types/schema.js";
 import { t } from "./i18n.js";
-
-export function printProfileRow(meta: ProfileMeta, active?: string): void {
-  const marker = meta.name === active ? chalk.green("*") : " ";
-  const display = meta.displayName ? ` (${meta.displayName})` : "";
-  const agents = meta.agents.join(",");
-  console.log(`${marker} ${chalk.bold(meta.name)}${display}  [${agents}]  ${meta.updatedAt}`);
-}
 
 export function snapshotSummary(snapshot: FullSnapshot): string[] {
   const lines: string[] = [];

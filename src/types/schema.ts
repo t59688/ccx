@@ -18,15 +18,6 @@ export const CodexProfileSchema = z.object({
 });
 export type CodexProfile = z.infer<typeof CodexProfileSchema>;
 
-export const ProfileMetaSchema = z.object({
-  name: z.string().min(1),
-  displayName: z.string().optional(),
-  description: z.string().optional(),
-  agents: z.array(AgentSchema),
-  createdAt: z.string(),
-  updatedAt: z.string()
-});
-export type ProfileMeta = z.infer<typeof ProfileMetaSchema>;
 
 export const AgentProfileMetaSchema = z.object({
   name: z.string().min(1),
@@ -41,7 +32,6 @@ export type AgentProfileMeta = z.infer<typeof AgentProfileMetaSchema>;
 export const StateSchema = z.object({
   schema: z.string().default("ccx.state.v1"),
   language: z.enum(["en", "zh-CN"]).default("zh-CN"),
-  activeProfile: z.string().optional(),
   activeClaudeProfile: z.string().optional(),
   activeCodexProfile: z.string().optional(),
   githubRepo: z.string().optional(),

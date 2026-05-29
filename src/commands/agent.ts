@@ -210,10 +210,11 @@ function codexCommand(): Command {
 }
 
 function saveAgentCommand(agent: Agent): Command {
-  return addCommonCreateOptions(new Command("save").argument("<name>", t(agent === "claude" ? "agentNameClaude" : "agentNameCodex")))
+  return addCommonCreateOptions(new Command("save").argument("[name]", t(agent === "claude" ? "agentNameClaude" : "agentNameCodex")))
     .description(t("agentSaveDescription", { agent: formatAgent(agent) }))
-    .action(async (name: string, options: CommonOptions) => {
-      const meta = await saveCurrentAgentProfile(agent, name, options);
+    .action(async (name: string | undefined, options: CommonOptions) => {
+      const presetName = await promptPresetName(agent, name);
+      const meta = await saveCurrentAgentProfile(agent, presetName, options);
       console.log(chalk.green(t("agentCreated", { agent: formatAgent(agent), name: meta.name })));
     });
 }

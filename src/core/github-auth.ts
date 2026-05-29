@@ -3,7 +3,8 @@ import process from "node:process";
 import chalk from "chalk";
 import { readState, updateState } from "./state.js";
 import { State } from "../types/schema.js";
-import { generateUniqueCcxRepoName, getAuthenticatedLogin, listCcxRepos } from "./github.js";
+import { expandRepoNameInput } from "./github-repo.js";
+import { generateUniqueCcxRepoNameForToken, getAuthenticatedLogin, getRepository, listCcxRepos } from "./github.js";
 import { promptConfirm, promptSecret, promptSelect, promptText } from "../utils/prompts.js";
 import { CcxError } from "../utils/errors.js";
 import { t } from "../utils/i18n.js";
@@ -104,10 +105,17 @@ async function resolveToken(
   return { token, tokenSource };
 }
 
-function withOwner(value: string, login: string): string {
+function normalizeRepoInput(value: string, login: string): string {
   const trimmed = value.trim();
   if (!trimmed) throw new CcxError(t("repoNeeded"), t("repoNeededHint"));
-  return trimmed.includes("/") ? trimmed : `${login}/${trimmed}`;
+  if (trimmed.includes("/")) return trimmed;
+  return expandRepoNameInput(trimmed, login);
+}
+
+async function verifyRepoAccess(repo: string, token: string): Promise<string> {
+  const repository = await getRepository({ repo, token, filePath: ".ccx/profiles.enc.json" });
+  if (!repository) throw new CcxError(t("repoNotAccessible", { repo }), t("repoNotAccessibleHint"));
+  return repository.full_name;
 }
 
 async function resolveRepo(options: GitHubAuthOptions, state: State, token: string, mode: GitHubAuthMode): Promise<string> {
@@ -130,7 +138,8 @@ async function resolveRepo(options: GitHubAuthOptions, state: State, token: stri
     } else {
       console.log(chalk.gray(t("repoNoneFound")));
     }
-    return withOwner(await promptText(t("repoNamePrompt")), login);
+    const entered = await promptText(t("repoNamePrompt"));
+    return verifyRepoAccess(normalizeRepoInput(entered, login), token);
   }
 
   const choice = await promptSelect(t("repoSetupChoice"), [
@@ -138,11 +147,12 @@ async function resolveRepo(options: GitHubAuthOptions, state: State, token: stri
     { name: t("repoEnterOwn"), value: "own" }
   ] as const);
   if (choice === "auto") {
-    const full = `${login}/${await generateUniqueCcxRepoName(token)}`;
+    const full = `${login}/${await generateUniqueCcxRepoNameForToken(token)}`;
     console.log(chalk.gray(t("repoGenerated", { repo: full })));
     return full;
   }
-  return withOwner(await promptText(t("repoNamePrompt")), login);
+  const entered = await promptText(t("repoNamePrompt"));
+  return verifyRepoAccess(normalizeRepoInput(entered, login), token);
 }
 
 export async function resolveGitHubAuth(

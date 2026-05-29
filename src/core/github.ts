@@ -1,8 +1,11 @@
-import { randomBytes } from "node:crypto";
 import { CcxError } from "../utils/errors.js";
+import {
+  CCX_REPO_MARKER,
+  generateUniqueCcxRepoName,
+  isCcxSyncRepo
+} from "./github-repo.js";
 
-/** All auto-generated sync repos use this prefix so pull can discover them by name. */
-export const CCX_REPO_PREFIX = "ccx-sync-";
+export { CCX_REPO_MARKER, CCX_REPO_NAME_PREFIX, formatGeneratedRepoName, isCcxSyncRepo } from "./github-repo.js";
 
 export interface GitHubTarget {
   repo: string;
@@ -26,6 +29,7 @@ interface GitHubRepoResponse {
   name: string;
   full_name: string;
   private: boolean;
+  description?: string | null;
   default_branch?: string;
 }
 
@@ -66,29 +70,67 @@ export async function getAuthenticatedLogin(token: string): Promise<string> {
   return data.login;
 }
 
-export async function listOwnerRepos(token: string): Promise<GitHubRepoResponse[]> {
-  const repos: GitHubRepoResponse[] = [];
+interface GitHubSearchResponse {
+  items: GitHubRepoResponse[];
+}
+
+export async function listAccessibleRepos(token: string): Promise<GitHubRepoResponse[]> {
+  const byFullName = new Map<string, GitHubRepoResponse>();
   for (let page = 1; page <= 10; page += 1) {
-    const url = `https://api.github.com/user/repos?affiliation=owner&per_page=100&page=${page}`;
-    const batch = await githubFetch<GitHubRepoResponse[]>(url, token);
-    repos.push(...batch);
+    const params = new URLSearchParams({
+      affiliation: "owner,collaborator,organization_member",
+      visibility: "all",
+      per_page: "100",
+      page: String(page),
+      sort: "updated",
+      direction: "desc"
+    });
+    const batch = await githubFetch<GitHubRepoResponse[]>(
+      `https://api.github.com/user/repos?${params}`,
+      token
+    );
+    for (const repo of batch) byFullName.set(repo.full_name.toLowerCase(), repo);
     if (batch.length < 100) break;
   }
-  return repos;
+  return [...byFullName.values()];
+}
+
+async function searchCcxSyncRepos(token: string, login: string): Promise<GitHubRepoResponse[]> {
+  const q = `user:${login} "${CCX_REPO_MARKER}" in:description`;
+  const data = await githubFetch<GitHubSearchResponse>(
+    `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&per_page=100`,
+    token
+  );
+  return data.items.filter(isCcxSyncRepo);
 }
 
 export async function listCcxRepos(token: string): Promise<GitHubRepoResponse[]> {
-  const repos = await listOwnerRepos(token);
-  return repos.filter((repo) => repo.name.startsWith(CCX_REPO_PREFIX));
+  const login = await getAuthenticatedLogin(token);
+  const byFullName = new Map<string, GitHubRepoResponse>();
+
+  for (const repo of await listAccessibleRepos(token)) {
+    if (isCcxSyncRepo(repo)) {
+      byFullName.set(repo.full_name.toLowerCase(), repo);
+    }
+  }
+
+  if (byFullName.size === 0) {
+    try {
+      for (const repo of await searchCcxSyncRepos(token, login)) {
+        byFullName.set(repo.full_name.toLowerCase(), repo);
+      }
+    } catch {
+      // Search may be unavailable for some token types.
+    }
+  }
+
+  return [...byFullName.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function generateUniqueCcxRepoName(token: string): Promise<string> {
-  const taken = new Set((await listOwnerRepos(token)).map((repo) => repo.name.toLowerCase()));
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    const candidate = `${CCX_REPO_PREFIX}${randomBytes(3).toString("hex")}`;
-    if (!taken.has(candidate.toLowerCase())) return candidate;
-  }
-  throw new CcxError("Could not generate a unique repository name.");
+export async function generateUniqueCcxRepoNameForToken(token: string): Promise<string> {
+  const login = await getAuthenticatedLogin(token);
+  const taken = new Set((await listAccessibleRepos(token)).map((repo) => repo.name.toLowerCase()));
+  return generateUniqueCcxRepoName(login, taken);
 }
 
 export async function getRepository(target: GitHubTarget): Promise<GitHubRepoResponse | undefined> {
@@ -115,7 +157,7 @@ export async function createRepository(target: GitHubTarget, privateRepo = true)
       name,
       private: privateRepo,
       auto_init: true,
-      description: "Encrypted ccx preset sync repository"
+      description: CCX_REPO_MARKER
     })
   });
 }

@@ -1,6 +1,6 @@
 {
   "name": "ccx",
-  "version": "0.8.0",
+  "version": "0.1.0",
   "description": "CLI for Claude Code and Codex: live configs, presets, and encrypted GitHub sync.",
   "type": "module",
   "bin": {
@@ -25,7 +25,6 @@
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "@inquirer/prompts": "^7.10.1",
-    "better-sqlite3": "^12.10.0",
     "chalk": "^5.4.1",
     "commander": "^12.1.0",
     "fs-extra": "^11.3.0",
@@ -34,7 +33,6 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",

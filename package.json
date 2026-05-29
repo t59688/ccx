@@ -6,6 +6,14 @@
   "bin": {
     "ccx": "dist/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t59688/ccx.git"
+  },
+  "bugs": {
+    "url": "https://github.com/t59688/ccx/issues"
+  },
+  "homepage": "https://github.com/t59688/ccx#readme",
   "engines": {
     "node": ">=20.0.0"
   },

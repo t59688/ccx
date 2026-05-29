@@ -1,215 +1,249 @@
 # ccx
 
-`ccx` is a CLI for Claude Code and Codex: **live configs**, **presets**, and encrypted GitHub sync.
+[English](README.en.md)
 
-The core rule is: **Claude and Codex are completely independent**. A Claude configuration can only be applied to Claude. A Codex configuration can only be applied to Codex. No command applies one profile to both tools at the same time.
+`ccx` 是 Claude Code 与 Codex CLI 的命令行工具：管理**生效配置**、**预设**，并支持加密同步到 GitHub。
 
-## Install from source
+**核心原则：Claude 与 Codex 完全独立。** Claude 预设只能用于 Claude，Codex 预设只能用于 Codex；没有任何命令会同时改写两个工具。
+
+| 概念 | 含义 |
+|------|------|
+| **生效配置** | 工具实际读取的文件：`~/.claude/settings.json`、`~/.codex/config.toml` 等 |
+| **预设** | 保存在 `~/.ccx/agents/` 下的命名配置，可随时切换 |
+
+需要 Node.js **≥ 20**。
+
+---
+
+## 安装
 
 ```bash
+git clone <repo-url>
+cd ccx
 npm install
 npm run build
 npm link
 ```
 
-The CLI command is **`ccx`**. Data lives under `~/.ccx/`.
-
-## Storage
-
-```text
-~/.ccx/
-├── agents/
-│   ├── claude/
-│   │   ├── anyrouter/
-│   │   │   ├── settings.json
-│   │   │   └── meta.yaml
-│   │   └── other-claude-provider/
-│   └── codex/
-│       ├── daye/
-│       │   ├── config.toml
-│       │   ├── auth.json
-│       │   └── meta.yaml
-│       └── other-codex-provider/
-├── backups/
-└── state.yaml                        # local only, not uploaded
-```
-
-Native files written by `use`:
-
-```text
-Claude Code: ~/.claude/settings.json
-Codex CLI:   ~/.codex/config.toml and ~/.codex/auth.json
-```
-
-`ccx claude use <name>` backs up and writes only Claude files.  
-`ccx codex use <name>` backs up and writes only Codex files.
-
-## Create a Codex configuration
-
-Codex creation only asks for the named configuration, key, API address, and model name. Everything else is generated automatically.
+验证：
 
 ```bash
+ccx --version
+```
+
+---
+
+## 快速上手
+
+### 直接运行：交互菜单
+
+不带参数启动会进入主菜单：
+
+```bash
+ccx
+```
+
+可选择 Claude / Codex 浏览预设、扫描当前生效配置、推送/拉取、设置等。进入 Claude 或 Codex 后默认进入 **browse** 交互界面。
+
+### 一键创建预设
+
+交互式（逐步提问，可留空跳过非必填项）：
+
+```bash
+ccx claude create
+ccx codex create
+```
+
+也可指定名称并用参数一次性填写：
+
+```bash
+# Codex：名称、Key、API 地址、模型
 ccx codex create daye \
-  --key "sk-222" \
-  --api-url "https://icoe.pp.ua" \
-  --model "gpt-5.4"
-```
+  --key "sk-xxx" \
+  --api-url "https://api.example.com" \
+  --model "gpt-5.4" \
+  --reasoning-effort "medium"
 
-Generated `auth.json`:
-
-```json
-{
-  "OPENAI_API_KEY": "sk-222"
-}
-```
-
-Generated `config.toml`:
-
-```toml
-model_provider = "custom"
-model = "gpt-5.4"
-model_reasoning_effort = "xhigh"   # optional; set via --reasoning-effort when creating
-disable_response_storage = true
-
-[model_providers]
-[model_providers.custom]
-name = "custom"
-base_url = "https://icoe.pp.ua"
-wire_api = "responses"
-requires_openai_auth = true
-```
-
-Apply only Codex:
-
-```bash
-ccx codex use daye
-```
-
-## Create a Claude configuration
-
-Claude creation only asks for the named configuration, key, API address, and model names. Everything else is generated automatically.
-
-```bash
+# Claude：名称、Key、API 地址、各模型名
 ccx claude create anyrouter \
-  --key "123132" \
-  --api-url "http://xxx" \
-  --model "xx1" \
-  --reasoning-model "xx2" \
-  --haiku-model "xx3" \
-  --sonnet-model "xx4" \
-  --opus-model "xx5"
+  --key "your-token" \
+  --api-url "https://api.example.com" \
+  --model "claude-sonnet-4-6" \
+  --reasoning-model "..." \
+  --haiku-model "..." \
+  --sonnet-model "..." \
+  --opus-model "..."
 ```
 
-Generated `settings.json`:
+`create` 只写入预设目录，**不会**自动切换到生效配置。要立刻使用请执行 `use`。
 
-```json
-{
-  "env": {
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "xx5",
-    "ANTHROPIC_MODEL": "xx1",
-    "ANTHROPIC_REASONING_MODEL": "xx2",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "xx4",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "xx3",
-    "ANTHROPIC_BASE_URL": "http://xxx",
-    "ANTHROPIC_AUTH_TOKEN": "123132"
-  },
-  "autoUpdatesChannel": "latest"
-}
-```
-
-Apply only Claude:
+### 一键切换生效配置
 
 ```bash
 ccx claude use anyrouter
+ccx codex use daye
 ```
 
-## Browse, list, show, edit, remove
+切换前会自动备份当前生效文件到 `~/.ccx/backups/`（可用 `--no-backup` 跳过）。切换后请**重启**对应的 Claude Code 或 Codex CLI。
+
+### 从当前生效配置保存为预设
+
+已在工具里配好 API，想存成预设：
 
 ```bash
-ccx list
+ccx claude save my-claude
+ccx codex save my-codex
+```
 
-# Claude configurations
-ccx claude list
-ccx claude browse
-ccx claude show anyrouter
-ccx claude edit anyrouter
-ccx claude remove anyrouter
+`save` 会读取当前生效文件并写入预设，同时将该预设记为「当前启用」。
 
-# Codex configurations
+---
+
+## 常用命令
+
+### 浏览与管理
+
+```bash
+ccx list                    # 列出全部 Claude + Codex 预设
+
+ccx claude list             # 仅 Claude
+ccx claude browse           # 交互：使用 / 查看 / 编辑 / 对比 / 删除
+ccx claude show [name]      # 查看预设（省略名则用当前启用或选择）
+ccx claude edit <name>      # 编辑（会回显当前值）
+ccx claude diff <name>      # 与当前生效配置对比
+ccx claude remove <name>    # 删除预设
+
 ccx codex list
 ccx codex browse
-ccx codex show daye
-ccx codex edit daye
-ccx codex remove daye
+ccx codex show [name]
+ccx codex edit <name>
+ccx codex diff <name>
+ccx codex remove <name>
 ```
 
-`show`, `list`, and `diff` redact tokens and keys.
+`show`、`list`、`diff` 会对 Key / Token 做脱敏显示。
 
-## Save existing native configs
+### 查看当前生效配置
 
 ```bash
-# Save only current Claude native files into a Claude configuration
-ccx claude save current-claude
-
-# Save only current Codex native files into a Codex configuration
-ccx codex save current-codex
+ccx scan
 ```
 
-Legacy combined-profile commands such as `ccx use <profile>` are deprecated and intentionally hidden from the main CLI flow.
+### 语言
 
-## Sync all configurations
-
-`push` syncs **all independent Claude configurations and all independent Codex configurations**. It does not sync `state.yaml` or `backups/`.
+首次运行若无 `state.yaml` 会询问语言。也可手动设置：
 
 ```bash
+ccx setting --language zh-CN
+ccx setting --language en
+```
+
+### GitHub 加密同步
+
+同步**所有** Claude 与 Codex 预设（不含 `state.yaml`、`backups/`）：
+
+```bash
+# 配置仓库与 Token
 ccx setting --repo owner/ccx-profiles --token ghp_xxx
 
-ccx push
-
-ccx pull
+ccx push    # 上传（AES-256-GCM 加密）
+ccx pull    # 下载并合并到本地
 ```
 
-You can save current native files before pushing:
+推送前顺便保存当前生效配置：
 
 ```bash
 ccx push --save-current-claude anyrouter --save-current-codex daye
 ```
 
-The remote file is an AES-256-GCM encrypted JSON envelope at `.ccx/profiles.enc.json` by default.
+远程默认路径：`.ccx/profiles.enc.json`。
 
-## i18n
-
-The CLI supports English and Simplified Chinese.
+**仓库不存在时**：`push` 会询问是否创建，**默认私有**。非交互示例：
 
 ```bash
-ccx setting --language en
-ccx setting --language zh-CN
-```
-
-## Safety
-
-- Local configuration files contain plaintext keys, same as the native Claude/Codex files. Directory/file permissions are restricted on Unix-like systems.
-- GitHub sync is encrypted with a passphrase-derived AES-256-GCM key.
-- Before `use`, only the target tool's current native config files are backed up under `~/.ccx/backups/` unless `--no-backup` is passed.
-- Codex config merge preserves local-only sections such as `mcp_servers` and `projects` when applying a configuration.
-
-### GitHub repository creation and token handling
-
-`ccx push` syncs all local Claude and Codex configuration stores as one encrypted bundle. If the configured GitHub repository does not exist, the CLI will ask whether to create it. New repositories are **private by default**.
-
-```bash
-ccx push --repo yourname/ccx-profiles
-# non-interactive: create missing repo as private
 ccx push --repo yourname/ccx-profiles --create-repo --yes
-# only if you intentionally want a public repo
-ccx push --repo yourname/ccx-profiles --create-repo --public-repo
 ```
 
-If no GitHub token is provided by `--token`, `GITHUB_TOKEN`, `GH_TOKEN`, or saved state, the CLI opens the GitHub token creation page and asks you to paste the token. Use a token with `repo` permission when syncing to private repositories or creating repositories. The CLI does **not** silently store a token. It asks before saving prompted tokens, or you can opt in explicitly:
+**Token**：可通过 `--token`、`GITHUB_TOKEN`、`GH_TOKEN` 或 `state.yaml` 中已保存的值提供；否则会打开 GitHub 创建 Token 页面。保存到本机前会确认（或使用 `--save-token` / `ccx setting --token`）。`state.yaml` 中的 Token 为明文，仅在可信机器上保存。
+
+### 从 cc-switch 导入
+
+若本机安装了 [cc-switch](https://github.com/farion1231/cc-switch)，可从其 SQLite 数据库导入预设：
 
 ```bash
-ccx push --repo yourname/ccx-profiles --save-token
-ccx setting --token ghp_xxx
+ccx migrate-ccs
 ```
 
-Saved tokens are kept in `~/.ccx/state.yaml` as plain text, so only save a token on machines you trust. The uploaded configuration bundle is still encrypted before it is committed to GitHub.
+读取 `~/.cc-switch/cc-switch.db`，勾选要导入的供应商。
+
+---
+
+## 目录结构
+
+```text
+~/.ccx/
+├── agents/
+│   ├── claude/<预设名>/settings.json, meta.yaml
+│   └── codex/<预设名>/config.toml, auth.json, meta.yaml
+├── backups/          # use 前的生效配置备份
+└── state.yaml        # 语言、GitHub 仓库、Token 等（不同步到 GitHub）
+```
+
+写入的生效路径：
+
+```text
+Claude Code:  ~/.claude/settings.json
+Codex CLI:    ~/.codex/config.toml、~/.codex/auth.json
+```
+
+Codex 合并时会保留本地的 `mcp_servers`、`projects` 等 ccx 未管理的字段。
+
+---
+
+## 安全说明
+
+- 本地预设与生效配置中的 Key 均为明文（与各工具原生行为一致）；Unix 上会限制目录权限。
+- GitHub 上的同步包经口令派生的 AES-256-GCM 加密。
+- `use` 默认备份，避免切换覆盖后无法恢复。
+
+---
+
+## 开发
+
+```bash
+npm run lint      # 类型检查
+npm test          # 单元测试
+npm run build     # 编译到 dist/
+npm run dev       # tsx 直接运行源码
+```
+
+从源码调试：
+
+```bash
+npm run dev -- claude list
+```
+
+---
+
+## 发布
+
+版本号以 `package.json` 为准。打 tag 触发 CI 发布到 npm（需在仓库配置 `NPM_TOKEN`）：
+
+```bash
+npm version patch
+git push origin main --follow-tags
+```
+
+npm 包名若与已有包冲突，请使用 scoped 名称（如 `@your-scope/ccx`），CLI 命令仍为 `ccx`。
+
+---
+
+## 贡献
+
+欢迎 Issue 与 Pull Request。提交前请确保 `npm run lint` 与 `npm test` 通过。
+
+---
+
+## 许可证
+
+[MIT](LICENSE)

@@ -18,7 +18,7 @@ function buildProgram(): Command {
   program
     .name("ccx")
     .description(t("appDescription"))
-    .version("0.8.0");
+    .version("0.1.0");
 
   for (const command of agentCommands()) program.addCommand(command);
   program.addCommand(scanCommand());

@@ -1,0 +1,41 @@
+{
+  "name": "ccx",
+  "version": "0.8.0",
+  "description": "CLI for Claude Code and Codex: live configs, presets, and encrypted GitHub sync.",
+  "type": "module",
+  "bin": {
+    "ccx": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "@inquirer/prompts": "^7.10.1",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.3.0",
+    "ora": "^8.1.1",
+    "yaml": "^2.6.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
